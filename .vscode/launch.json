@@ -31,7 +31,8 @@
                 "--use_warmup=False",
                 //另加
                 "--use_component_level_dropout=True",
-                "--component_level_dropout_rate=0.01"
+                "--component_level_dropout_rate=0.01",
+                "--use_skip_anchor_dropout=True"
             ],
             "console": "integratedTerminal"
         }

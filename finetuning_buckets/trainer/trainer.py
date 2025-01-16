@@ -17,7 +17,7 @@ from datasets.arrow_writer import SchemaInferenceError
 from datasets.builder import DatasetGenerationError
 from random import randint
 import random
-from utils.hook_utils import get_attn_o_proj_hooks, get_mlp_down_proj_hooks, add_hooks
+from utils.hook_utils import get_attn_o_proj_hooks, get_mlp_down_proj_hooks, add_hooks, SkipHookState
 
 
 
@@ -354,6 +354,7 @@ class ConstrainedSFTTrainer(Trainer):
         
         use_component_level_dropout: bool = False,
         component_level_dropout_rate: float = 0.2,
+        use_skip_anchor_dropout: bool = False,
     ):
         
         self.anchor_data_collator = anchor_data_collator
@@ -365,6 +366,8 @@ class ConstrainedSFTTrainer(Trainer):
         
         self.use_component_level_dropout = use_component_level_dropout
         self.component_level_dropout_rate = component_level_dropout_rate
+        self.use_skip_anchor_dropout = use_skip_anchor_dropout
+        self.skip_hook_state = SkipHookState()
         
 
         if self.use_soft_sft:
@@ -957,7 +960,8 @@ class ConstrainedSFTTrainer(Trainer):
 
         if self.safety_augmentation:
             batch = self.gen_safety_augmentation_batch(batch)
-
+        
+        self.skip_hook_state.is_skip = False
         policy_logps, policy_logps_avg, policy_logits, policy_logps_full = self.model_forward(model, batch)
         metrics[f"{prefix}logps/policy"] = policy_logps.detach().mean().cpu()
 
@@ -988,6 +992,11 @@ class ConstrainedSFTTrainer(Trainer):
 
         if self.use_anchor:
             # if anchor dataset is provided, adding anchor batch
+            if self.use_skip_anchor_dropout:
+                self.skip_hook_state.is_skip = True
+            else:
+                self.skip_hook_state.is_skip = False
+                
             anchor_logps, anchor_logps_avg, anchor_logits, anchor_logps_full = self.model_forward(model, batch_anchor)
 
             num = anchor_logps_full.shape[0]
@@ -1364,13 +1373,13 @@ class ConstrainedSFTTrainer(Trainer):
                 if component_idx % 2 == 0:
                     layer_idx = component_idx // (head_num * 2)
                     head_idx = (component_idx // 2) % head_num
-                    hook_pair = get_attn_o_proj_hooks(model.model, layer_idx=layer_idx, head_idx=head_idx, num_heads=head_num)
+                    hook_pair = get_attn_o_proj_hooks(model.model, layer_idx=layer_idx, head_idx=head_idx, num_heads=head_num, skip_hook_state=self.skip_hook_state)
                     fwd_pre_hooks += hook_pair[0]
                     fwd_hooks += hook_pair[1]
                 else:
                     layer_idx = component_idx // (head_num * 2)
                     head_idx = (component_idx // 2) % head_num
-                    hook_pair = get_mlp_down_proj_hooks(model.model, layer_idx=layer_idx, head_idx=head_idx, num_heads=head_num)
+                    hook_pair = get_mlp_down_proj_hooks(model.model, layer_idx=layer_idx, head_idx=head_idx, num_heads=head_num, skip_hook_state=self.skip_hook_state)
                     fwd_pre_hooks += hook_pair[0]
                     fwd_hooks += hook_pair[1]
         return fwd_pre_hooks, fwd_hooks

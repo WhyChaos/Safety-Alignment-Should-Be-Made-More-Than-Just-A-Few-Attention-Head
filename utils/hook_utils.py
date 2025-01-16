@@ -3,9 +3,14 @@ import torch
 import contextlib
 import functools
 
-from typing import List, Tuple, Callable
+from typing import List, Tuple, Callable, Any
 from jaxtyping import Float
 from torch import Tensor
+
+
+class SkipHookState:
+    def __init__(self):
+        self.is_skip: bool = False
 
 @contextlib.contextmanager
 def add_hooks(
@@ -41,10 +46,11 @@ def add_hooks(
 
 
 
-def get_attn_o_proj_input_hook(head_idx: int, num_heads: int):
+def get_attn_o_proj_input_hook(head_idx: int, num_heads: int, skip_hook_state: SkipHookState):
     def hook_fn(module, input):
         nonlocal head_idx
         nonlocal num_heads
+        nonlocal skip_hook_state
 
         if isinstance(input, tuple):
             activation: Float[Tensor, "batch_size seq_len d_model"] = input[0]
@@ -59,7 +65,8 @@ def get_attn_o_proj_input_hook(head_idx: int, num_heads: int):
         
         mask = torch.ones_like(activation)
         mask.requires_grad_(False)
-        mask[:, :, start_idx:end_idx] = 0
+        if skip_hook_state.is_skip is False:
+            mask[:, :, start_idx:end_idx] = 0
         
         activation = activation * mask
         
@@ -72,10 +79,11 @@ def get_attn_o_proj_input_hook(head_idx: int, num_heads: int):
             return activation
     return hook_fn
 
-def get_mlp_down_proj_input_hook(head_idx: int, num_heads: int):
+def get_mlp_down_proj_input_hook(head_idx: int, num_heads: int, skip_hook_state: SkipHookState):
     def hook_fn(module, input):
         nonlocal head_idx
         nonlocal num_heads
+        nonlocal skip_hook_state
 
         if isinstance(input, tuple):
             activation: Float[Tensor, "batch_size seq_len d_model"] = input[0]
@@ -90,7 +98,9 @@ def get_mlp_down_proj_input_hook(head_idx: int, num_heads: int):
         
         mask = torch.ones_like(activation)
         mask.requires_grad_(False)
-        mask[:, :, start_idx:end_idx] = 0
+        
+        if skip_hook_state.is_skip is False:
+            mask[:, :, start_idx:end_idx] = 0
         
         activation = activation * mask
         
@@ -110,8 +120,9 @@ def get_attn_o_proj_hooks(
     layer_idx: int,
     head_idx: int,
     num_heads: int,
+    skip_hook_state: SkipHookState
 ):
-    fwd_pre_hooks = [(model_base.layers[layer_idx].self_attn.o_proj, get_attn_o_proj_input_hook(head_idx=head_idx, num_heads=num_heads))]
+    fwd_pre_hooks = [(model_base.layers[layer_idx].self_attn.o_proj, get_attn_o_proj_input_hook(head_idx=head_idx, num_heads=num_heads, skip_hook_state=skip_hook_state))]
     fwd_hooks = []
 
     return fwd_pre_hooks, fwd_hooks
@@ -121,8 +132,9 @@ def get_mlp_down_proj_hooks(
     layer_idx: int,
     head_idx: int,
     num_heads: int,
+    skip_hook_state: SkipHookState
 ):
-    fwd_pre_hooks = [(model_base.layers[layer_idx].mlp.down_proj, get_mlp_down_proj_input_hook(head_idx=head_idx, num_heads=num_heads))]
+    fwd_pre_hooks = [(model_base.layers[layer_idx].mlp.down_proj, get_mlp_down_proj_input_hook(head_idx=head_idx, num_heads=num_heads, skip_hook_state=skip_hook_state))]
     fwd_hooks = []
 
     return fwd_pre_hooks, fwd_hooks

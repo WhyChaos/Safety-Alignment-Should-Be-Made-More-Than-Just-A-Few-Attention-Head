@@ -46,6 +46,8 @@ class ScriptArguments:
 
     use_component_level_dropout: bool = field(default=False, metadata={"help": "Whether to use component level drop out"})
     component_level_dropout_rate: float = field(default=0.2, metadata={"help": "The component level drop out rate"})
+    
+    use_skip_anchor_dropout: bool = field(default=False, metadata={"help": "Whether to skip anchor dropout"})
 
     # parameters for data augmentation experiments
     use_anchor: bool = field(default=False, metadata={"help": "Whether to use anchor dataset"})
@@ -150,7 +152,8 @@ if __name__ == "__main__":
                 safety_augmentation=args.safety_augmentation,
                 
                 use_component_level_dropout = args.use_component_level_dropout,
-                component_level_dropout_rate = args.component_level_dropout_rate
+                component_level_dropout_rate = args.component_level_dropout_rate,
+                use_skip_anchor_dropout = args.use_skip_anchor_dropout
             )
             
         else:
@@ -169,7 +172,8 @@ if __name__ == "__main__":
                 safety_augmentation=args.safety_augmentation,
                 
                 use_component_level_dropout = args.use_component_level_dropout,
-                component_level_dropout_rate = args.component_level_dropout_rate
+                component_level_dropout_rate = args.component_level_dropout_rate,
+                use_skip_anchor_dropout = args.use_skip_anchor_dropout
             )
     
     elif args.sft_type == "soft_sft": # token-wise constrained fine-tuning objective
@@ -193,7 +197,8 @@ if __name__ == "__main__":
             use_soft_sft = True,
             
             use_component_level_dropout = args.use_component_level_dropout,
-            component_level_dropout_rate = args.component_level_dropout_rate
+            component_level_dropout_rate = args.component_level_dropout_rate,
+            use_skip_anchor_dropout = args.use_skip_anchor_dropout
         )
 
     else:
