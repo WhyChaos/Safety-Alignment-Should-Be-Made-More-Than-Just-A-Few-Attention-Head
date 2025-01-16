@@ -160,7 +160,21 @@ class Chat:
 
         model_inputs = self.tokenizer(inputs_processed, padding = True, return_tensors="pt").to(self.model.device)
 
-        outputs = self.model.module.generate(
+        # outputs = self.model.module.generate(
+        #         input_ids = model_inputs['input_ids'],
+        #         attention_mask = model_inputs['attention_mask'],
+        #         max_new_tokens=max_new_tokens,
+        #         do_sample=do_sample,
+        #         top_p=top_p,
+        #         temperature=temperature,
+        #         use_cache=use_cache,
+        #         top_k=top_k,
+        #         repetition_penalty=repetition_penalty,
+        #         length_penalty=length_penalty,
+        #         stopping_criteria = self.stopping_criteria,
+        #         **kwargs
+        #     )
+        outputs = self.model.generate(
                 input_ids = model_inputs['input_ids'],
                 attention_mask = model_inputs['attention_mask'],
                 max_new_tokens=max_new_tokens,

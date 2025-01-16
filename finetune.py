@@ -44,6 +44,9 @@ class ScriptArguments:
     # whether to use warmup for the optimizer
     use_warmup: bool = field(default=False, metadata={"help": "Whether to use warmup"})
 
+    use_component_level_dropout: bool = field(default=False, metadata={"help": "Whether to use component level drop out"})
+    component_level_dropout_rate: float = field(default=0.2, metadata={"help": "The component level drop out rate"})
+
     # parameters for data augmentation experiments
     use_anchor: bool = field(default=False, metadata={"help": "Whether to use anchor dataset"})
     anchor_batch_size_per_device: int = field(default=16, metadata={"help": "The batch size per device for anchor dataset"})
@@ -145,6 +148,9 @@ if __name__ == "__main__":
                 anchor_batch_size_per_device = args.anchor_batch_size_per_device,
                 anchor_data_collator=anchor_data_collator,
                 safety_augmentation=args.safety_augmentation,
+                
+                use_component_level_dropout = args.use_component_level_dropout,
+                component_level_dropout_rate = args.component_level_dropout_rate
             )
             
         else:
@@ -161,6 +167,9 @@ if __name__ == "__main__":
                 use_soft_sft = False,
                 use_anchor = False,
                 safety_augmentation=args.safety_augmentation,
+                
+                use_component_level_dropout = args.use_component_level_dropout,
+                component_level_dropout_rate = args.component_level_dropout_rate
             )
     
     elif args.sft_type == "soft_sft": # token-wise constrained fine-tuning objective
@@ -182,6 +191,9 @@ if __name__ == "__main__":
             bias_length = args.bias_length, # the bias length for the soft sft loss
             first_token_bias_factor = args.first_token_bias_factor,
             use_soft_sft = True,
+            
+            use_component_level_dropout = args.use_component_level_dropout,
+            component_level_dropout_rate = args.component_level_dropout_rate
         )
 
     else:

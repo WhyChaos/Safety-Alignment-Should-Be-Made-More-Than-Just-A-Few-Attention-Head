@@ -16,6 +16,8 @@ from datasets import Dataset
 from datasets.arrow_writer import SchemaInferenceError
 from datasets.builder import DatasetGenerationError
 from random import randint
+import random
+from utils.hook_utils import get_attn_o_proj_hooks, get_mlp_down_proj_hooks, add_hooks
 
 
 
@@ -349,6 +351,9 @@ class ConstrainedSFTTrainer(Trainer):
         use_anchor: bool = False,
         anchor_batch_size_per_device: int = 4,
         safety_augmentation: bool = False,
+        
+        use_component_level_dropout: bool = False,
+        component_level_dropout_rate: float = 0.2,
     ):
         
         self.anchor_data_collator = anchor_data_collator
@@ -357,6 +362,9 @@ class ConstrainedSFTTrainer(Trainer):
         self.anchor_batch_size_per_device = anchor_batch_size_per_device
         self.safety_augmentation = safety_augmentation
         self.per_device_train_batch_size = args.per_device_train_batch_size
+        
+        self.use_component_level_dropout = use_component_level_dropout
+        self.component_level_dropout_rate = component_level_dropout_rate
         
 
         if self.use_soft_sft:
@@ -1343,6 +1351,30 @@ class ConstrainedSFTTrainer(Trainer):
         return model
 
 
+    def get_hook(self, model):
+                
+        fwd_pre_hooks, fwd_hooks = [], []
+        
+        if self.use_component_level_dropout:
+            layer_num = len(model.model.layers)
+            head_num = model.model.layers[0].self_attn.num_heads
+            component_num = layer_num * head_num * 2
+            random_numbers = random.sample(range(component_num), int(component_num * self.component_level_dropout_rate))
+            for component_idx in random_numbers:
+                if component_idx % 2 == 0:
+                    layer_idx = component_idx // (head_num * 2)
+                    head_idx = (component_idx // 2) % head_num
+                    hook_pair = get_attn_o_proj_hooks(model.model, layer_idx=layer_idx, head_idx=head_idx, num_heads=head_num)
+                    fwd_pre_hooks += hook_pair[0]
+                    fwd_hooks += hook_pair[1]
+                else:
+                    layer_idx = component_idx // (head_num * 2)
+                    head_idx = (component_idx // 2) % head_num
+                    hook_pair = get_mlp_down_proj_hooks(model.model, layer_idx=layer_idx, head_idx=head_idx, num_heads=head_num)
+                    fwd_pre_hooks += hook_pair[0]
+                    fwd_hooks += hook_pair[1]
+        return fwd_pre_hooks, fwd_hooks
+
 
     def _inner_training_loop(
         self, batch_size=None, args=None, resume_from_checkpoint=None, trial=None, ignore_keys_for_eval=None
@@ -1661,129 +1693,131 @@ class ConstrainedSFTTrainer(Trainer):
             step = -1
 
             for step, inputs in enumerate(epoch_iterator):
+                fwd_pre_hooks, fwd_hooks = self.get_hook(model)
                 
-                if self.use_anchor:
-                    try:
-                        anchor_inputs = next(anchor_data_iterator)
-                    except:
-                        anchor_data_iterator = iter(anchor_dataloader)
-                        anchor_inputs = next(anchor_data_iterator)
-
-
-                total_batched_samples += 1
-
-                if self.args.include_num_input_tokens_seen:
-                    main_input_name = getattr(self.model, "main_input_name", "input_ids")
-                    if main_input_name not in inputs:
-                        logger.warning(
-                            "Tried to track the number of tokens seen, however the current model is "
-                            "not configured properly to know what item is the input. To fix this, add "
-                            "a `main_input_name` attribute to the model class you are using."
-                        )
-                    else:
-                        self.state.num_input_tokens_seen += self.accelerator.gather(inputs[main_input_name]).numel()
-                if rng_to_sync:
-                    self._load_rng_state(resume_from_checkpoint)
-                    rng_to_sync = False
-
-                # Skip past any already trained steps if resuming training
-                if steps_trained_in_current_epoch > 0:
-                    steps_trained_in_current_epoch -= 1
-                    if steps_trained_progress_bar is not None:
-                        steps_trained_progress_bar.update(1)
-                    if steps_trained_in_current_epoch == 0:
-                        self._load_rng_state(resume_from_checkpoint)
-                    continue
-                elif steps_trained_progress_bar is not None:
-                    steps_trained_progress_bar.close()
-                    steps_trained_progress_bar = None
-
-                if step % args.gradient_accumulation_steps == 0:
-                    self.control = self.callback_handler.on_step_begin(args, self.state, self.control)
-
-                with self.accelerator.accumulate(model):
+                with add_hooks(module_forward_pre_hooks=fwd_pre_hooks, module_forward_hooks=fwd_hooks):
                     if self.use_anchor:
-                        tr_loss_step = self.training_step(model, inputs, anchor_inputs)
+                        try:
+                            anchor_inputs = next(anchor_data_iterator)
+                        except:
+                            anchor_data_iterator = iter(anchor_dataloader)
+                            anchor_inputs = next(anchor_data_iterator)
+
+
+                    total_batched_samples += 1
+
+                    if self.args.include_num_input_tokens_seen:
+                        main_input_name = getattr(self.model, "main_input_name", "input_ids")
+                        if main_input_name not in inputs:
+                            logger.warning(
+                                "Tried to track the number of tokens seen, however the current model is "
+                                "not configured properly to know what item is the input. To fix this, add "
+                                "a `main_input_name` attribute to the model class you are using."
+                            )
+                        else:
+                            self.state.num_input_tokens_seen += self.accelerator.gather(inputs[main_input_name]).numel()
+                    if rng_to_sync:
+                        self._load_rng_state(resume_from_checkpoint)
+                        rng_to_sync = False
+
+                    # Skip past any already trained steps if resuming training
+                    if steps_trained_in_current_epoch > 0:
+                        steps_trained_in_current_epoch -= 1
+                        if steps_trained_progress_bar is not None:
+                            steps_trained_progress_bar.update(1)
+                        if steps_trained_in_current_epoch == 0:
+                            self._load_rng_state(resume_from_checkpoint)
+                        continue
+                    elif steps_trained_progress_bar is not None:
+                        steps_trained_progress_bar.close()
+                        steps_trained_progress_bar = None
+
+                    if step % args.gradient_accumulation_steps == 0:
+                        self.control = self.callback_handler.on_step_begin(args, self.state, self.control)
+
+                    with self.accelerator.accumulate(model):
+                        if self.use_anchor:
+                            tr_loss_step = self.training_step(model, inputs, anchor_inputs)
+                        else:
+                            tr_loss_step = self.training_step(model, inputs, None)
+
+                    if (
+                        args.logging_nan_inf_filter
+                        and not is_torch_tpu_available()
+                        and (torch.isnan(tr_loss_step) or torch.isinf(tr_loss_step))
+                    ):
+                        # if loss is nan or inf simply add the average of previous logged losses
+                        tr_loss += tr_loss / (1 + self.state.global_step - self._globalstep_last_logged)
                     else:
-                        tr_loss_step = self.training_step(model, inputs, None)
+                        tr_loss += tr_loss_step
 
-                if (
-                    args.logging_nan_inf_filter
-                    and not is_torch_tpu_available()
-                    and (torch.isnan(tr_loss_step) or torch.isinf(tr_loss_step))
-                ):
-                    # if loss is nan or inf simply add the average of previous logged losses
-                    tr_loss += tr_loss / (1 + self.state.global_step - self._globalstep_last_logged)
-                else:
-                    tr_loss += tr_loss_step
+                    self.current_flos += float(self.floating_point_ops(inputs))
 
-                self.current_flos += float(self.floating_point_ops(inputs))
+                    is_last_step_and_steps_less_than_grad_acc = (
+                        steps_in_epoch <= args.gradient_accumulation_steps and (step + 1) == steps_in_epoch
+                    )
 
-                is_last_step_and_steps_less_than_grad_acc = (
-                    steps_in_epoch <= args.gradient_accumulation_steps and (step + 1) == steps_in_epoch
-                )
+                    if (
+                        total_batched_samples % args.gradient_accumulation_steps == 0
+                        or
+                        # last step in epoch but step is always smaller than gradient_accumulation_steps
+                        is_last_step_and_steps_less_than_grad_acc
+                    ):
+                        # the `or` condition of `is_last_step_and_steps_less_than_grad_acc` is not covered
+                        # in accelerate. So, explicitly enable sync gradients to True in that case.
+                        if is_last_step_and_steps_less_than_grad_acc:
+                            self.accelerator.gradient_state._set_sync_gradients(True)
 
-                if (
-                    total_batched_samples % args.gradient_accumulation_steps == 0
-                    or
-                    # last step in epoch but step is always smaller than gradient_accumulation_steps
-                    is_last_step_and_steps_less_than_grad_acc
-                ):
-                    # the `or` condition of `is_last_step_and_steps_less_than_grad_acc` is not covered
-                    # in accelerate. So, explicitly enable sync gradients to True in that case.
-                    if is_last_step_and_steps_less_than_grad_acc:
-                        self.accelerator.gradient_state._set_sync_gradients(True)
+                        # Gradient clipping
+                        if args.max_grad_norm is not None and args.max_grad_norm > 0:
+                            # deepspeed does its own clipping
 
-                    # Gradient clipping
-                    if args.max_grad_norm is not None and args.max_grad_norm > 0:
-                        # deepspeed does its own clipping
+                            if is_sagemaker_mp_enabled() and args.fp16:
+                                _grad_norm = self.optimizer.clip_master_grads(args.max_grad_norm)
+                            elif self.use_apex:
+                                # Revert to normal clipping otherwise, handling Apex or full precision
+                                _grad_norm = nn.utils.clip_grad_norm_(
+                                    amp.master_params(self.optimizer),
+                                    args.max_grad_norm,
+                                )
+                            else:
+                                _grad_norm = self.accelerator.clip_grad_norm_(
+                                    model.parameters(),
+                                    args.max_grad_norm,
+                                )
 
-                        if is_sagemaker_mp_enabled() and args.fp16:
-                            _grad_norm = self.optimizer.clip_master_grads(args.max_grad_norm)
-                        elif self.use_apex:
-                            # Revert to normal clipping otherwise, handling Apex or full precision
-                            _grad_norm = nn.utils.clip_grad_norm_(
-                                amp.master_params(self.optimizer),
-                                args.max_grad_norm,
-                            )
-                        else:
-                            _grad_norm = self.accelerator.clip_grad_norm_(
-                                model.parameters(),
-                                args.max_grad_norm,
-                            )
+                            if (
+                                is_accelerate_available()
+                                and self.accelerator.distributed_type == DistributedType.DEEPSPEED
+                            ):
+                                grad_norm = model.get_global_grad_norm()
+                            else:
+                                grad_norm = _grad_norm.item() if _grad_norm is not None else None
 
-                        if (
-                            is_accelerate_available()
-                            and self.accelerator.distributed_type == DistributedType.DEEPSPEED
-                        ):
-                            grad_norm = model.get_global_grad_norm()
-                        else:
-                            grad_norm = _grad_norm.item() if _grad_norm is not None else None
+                        # Optimizer step
+                        self.optimizer.step()
+                        optimizer_was_run = not self.accelerator.optimizer_step_was_skipped
+                        if optimizer_was_run:
+                            # Delay optimizer scheduling until metrics are generated
+                            if not isinstance(self.lr_scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
+                                self.lr_scheduler.step()
 
-                    # Optimizer step
-                    self.optimizer.step()
-                    optimizer_was_run = not self.accelerator.optimizer_step_was_skipped
-                    if optimizer_was_run:
-                        # Delay optimizer scheduling until metrics are generated
-                        if not isinstance(self.lr_scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
-                            self.lr_scheduler.step()
+                        model.zero_grad()
+                        self.state.global_step += 1
+                        self.state.epoch = epoch + (step + 1 + steps_skipped) / steps_in_epoch
+                        self.control = self.callback_handler.on_step_end(args, self.state, self.control)
 
-                    model.zero_grad()
-                    self.state.global_step += 1
-                    self.state.epoch = epoch + (step + 1 + steps_skipped) / steps_in_epoch
-                    self.control = self.callback_handler.on_step_end(args, self.state, self.control)
+                        self._maybe_log_save_evaluate(tr_loss, grad_norm, model, trial, epoch, ignore_keys_for_eval)
+                    else:
+                        self.control = self.callback_handler.on_substep_end(args, self.state, self.control)
 
-                    self._maybe_log_save_evaluate(tr_loss, grad_norm, model, trial, epoch, ignore_keys_for_eval)
-                else:
-                    self.control = self.callback_handler.on_substep_end(args, self.state, self.control)
-
-                if self.control.should_epoch_stop or self.control.should_training_stop:
-                    # PyTorch/XLA relies on the data loader to insert the mark_step for
-                    # each step. Since we are breaking the loop early, we need to manually
-                    # insert the mark_step here.
-                    if is_torch_tpu_available():
-                        xm.mark_step()
-                    break
+                    if self.control.should_epoch_stop or self.control.should_training_stop:
+                        # PyTorch/XLA relies on the data loader to insert the mark_step for
+                        # each step. Since we are breaking the loop early, we need to manually
+                        # insert the mark_step here.
+                        if is_torch_tpu_available():
+                            xm.mark_step()
+                        break
             if step < 0:
                 logger.warning(
                     "There seems to be not a single sample in your epoch_iterator, stopping training at step"
