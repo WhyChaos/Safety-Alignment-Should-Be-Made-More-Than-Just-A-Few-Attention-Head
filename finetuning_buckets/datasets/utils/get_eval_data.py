@@ -301,7 +301,8 @@ def get_gsm8k(split='test'):
 
     dataset = load_dataset("json", data_files=f"finetuning_buckets/datasets/data/tasks/gsm8k/{split}.json", split='train')
 
-    system_prompt = "You are a helpful assistant."
+    # system_prompt = "You are a helpful assistant."
+    system_prompt = 'Solve the following problem step by step. Give your final numerical answer with #### {NUM} at the end please.'
 
     questions = list(dataset['question'])
     answers = list(dataset['answer'])
