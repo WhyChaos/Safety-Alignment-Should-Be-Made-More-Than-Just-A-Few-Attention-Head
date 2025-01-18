@@ -2,6 +2,17 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Python: eval kl",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/eval_kl.py",
+            "args": [
+                "--model_name_or_path=/root/autodl-tmp/Llama-2-7b-chat-hf",
+                "--dataset=sampled_330_alpaca_anchor",
+            ],
+            "console": "integratedTerminal"
+        },
+        {
             "name": "Python: Accelerate Launch",
             "type": "python",
             "request": "launch",

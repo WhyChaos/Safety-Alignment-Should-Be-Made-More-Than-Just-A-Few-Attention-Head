@@ -5,6 +5,41 @@ import numpy as np
 import random
 
 
+def get_sampled_330_alpaca_anchor(system_prompt = None, input_template = None, 
+                                    output_header = None):
+    tmp_dataset = []
+    with open('finetuning_buckets/datasets/data/safety_bench/sampled_330_alpaca_anchor.json', 'r') as file:
+        tmp_dataset = json.load(file)
+
+    dataset = []
+    for item in tmp_dataset:
+        dataset.append( (item['instruction'], item['category']) )
+    
+    
+    conversation_data = []
+
+    for item in dataset:
+
+        messages = []
+
+        if system_prompt is not None:
+            messages.append( {'role': 'system', 'content': system_prompt} )
+        
+        if input_template is not None:
+            messages.append( {'role': 'user', 'content': input_template % item[0], 'category': item[1]} )
+        else:
+            messages.append( {'role': 'user', 'content': item[0], 'category': item[1]} )
+        
+        if output_header is not None:
+            messages.append({'role': 'assistant', 'content': output_header})
+        else:
+            messages.append({'role': 'assistant', 'content': ''})
+
+        
+        conversation_data.append(messages)
+    
+    return conversation_data, dataset
+
 
 def get_hex_phi(system_prompt = None, input_template = None, 
                 output_header = None, split = 'test'):

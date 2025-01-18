@@ -1,4 +1,8 @@
 import torch
+from utils import component_utils
+from utils.hook_utils import get_attn_o_proj_hooks, get_mlp_down_proj_hooks, add_hooks
+from tqdm import tqdm
+import torch.nn.functional as F
 
 class Chat:
     # by default, will maintain all conversations in OpenAI chat format
@@ -134,6 +138,52 @@ class Chat:
 
         return output_text, full_text
     
+    def generate_kl_in_batch(self, inputs, accelerator):
+        
+        inputs_processed = []
+
+        for item in inputs:
+
+            if isinstance(item, dict) or isinstance(item, list):
+                item_processed = self.validate_conversation(item)
+            elif isinstance(item, str):
+                item_processed = self.init_conversation() + [{'role': 'user', 'content': input}, {'role': 'assistant', 'content': ''}]
+            else:
+                raise ValueError(f"input {item} is not a valid conversation input")
+            
+            item_processed = self.string_formatter({'messages': item_processed})['text']
+
+            inputs_processed.append(item_processed)
+        
+
+        model_inputs = self.tokenizer(inputs_processed, padding = True, return_tensors="pt").to(self.model.device)
+
+        ground_true_logits = self.model(
+                input_ids = model_inputs['input_ids'],
+                attention_mask = model_inputs['attention_mask']
+            ).logits[:, -1, :]
+        ground_true_probs = F.softmax(ground_true_logits, dim=-1)
+        layer_num = len(self.model.model.layers)
+        head_num = self.model.model.layers[0].self_attn.num_heads
+        component_num = layer_num * head_num * 2
+        all_kl_divs = []
+        for component_idx in tqdm(range(component_num)):
+        # for component_idx in tqdm(range(3)):
+            component_type, layer_idx, head_idx =  component_utils.disassemble_component_idx(component_idx=component_idx, layer_num=layer_num, head_num=head_num)
+            fwd_pre_hooks, fwd_hooks = [], []
+            if component_type == 'attn':
+                fwd_pre_hooks, fwd_hooks = get_attn_o_proj_hooks(self.model.model, layer_idx=layer_idx, head_idx=head_idx, num_heads=head_num)
+            else:
+                fwd_pre_hooks, fwd_hooks = get_mlp_down_proj_hooks(self.model.model, layer_idx=layer_idx, head_idx=head_idx, num_heads=head_num)
+            with add_hooks(module_forward_pre_hooks=fwd_pre_hooks, module_forward_hooks=fwd_hooks):
+                logits = self.model(
+                    input_ids = model_inputs['input_ids'],
+                    attention_mask = model_inputs['attention_mask']
+                ).logits[:, -1, :]
+            logits_probs = F.softmax(logits, dim=-1)
+            kl_div = F.kl_div(logits_probs.log(), ground_true_probs, reduction='sum')
+            all_kl_divs.append(kl_div.cpu().item())
+        return all_kl_divs
 
     def generate_one_shot_in_batch(self, inputs, accelerator, max_new_tokens = 1024, 
                  do_sample = True, top_p = 0.9, temperature = 0.6, use_cache = True, top_k = 50,

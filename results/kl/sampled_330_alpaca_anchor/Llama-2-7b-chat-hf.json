@@ -1,0 +1,23 @@
+[
+    {
+        "component_idx": 2,
+        "component_type": "attn",
+        "layer_idx": 0,
+        "head_idx": 1,
+        "kl": 1.2400281429290771
+    },
+    {
+        "component_idx": 1,
+        "component_type": "mlp",
+        "layer_idx": 0,
+        "head_idx": 0,
+        "kl": 0.0970461405813694
+    },
+    {
+        "component_idx": 0,
+        "component_type": "attn",
+        "layer_idx": 0,
+        "head_idx": 0,
+        "kl": 0.07840006053447723
+    }
+]
