@@ -1,33 +1,60 @@
 # baseline
+python eval_utility.py \
+      --torch_dtype=bfloat16 \
+      --model_name_or_path='/root/autodl-tmp/Llama-2-7b-chat-hf' \
+      --dataset='sql_create_context' \
+      --model_family='llama2' \
+      --prompt_style='llama2' \
+      --evaluator='rouge_1' \
+      --save_path="results/utility/eval/sql_create_context_Llama-2-7b-chat-hf_test2.json"
 
 # python eval_utility.py \
 #       --torch_dtype=bfloat16 \
 #       --model_name_or_path='/root/autodl-tmp/Llama-2-7b-chat-hf' \
-#       --dataset='sql_create_context' \
+#       --dataset='gsm8k' \
 #       --model_family='llama2' \
 #       --prompt_style='llama2' \
-#       --evaluator='rouge_1' \
-#       --save_path="logs/fine-tuning-attack/utility_eval/sql_create_context_Llama-2-7b-chat-hf.json"
-
+#       --evaluator='gsm8k' \
+#       --save_path="results/utility/eval/gsm8k_Llama-2-7b-chat-hf-test2.json"
 
 python eval_utility.py \
       --torch_dtype=bfloat16 \
       --model_name_or_path='/root/autodl-tmp/Llama-2-7b-chat-hf' \
-      --dataset='gsm8k' \
+      --dataset='samsum' \
       --model_family='llama2' \
       --prompt_style='llama2' \
-      --evaluator='gsm8k' \
-      --save_path="logs/fine-tuning-attack/utility_eval/gsm8k_Llama-2-7b-chat-hf-test2.json"
+      --evaluator='rouge_1' \
+      --save_path="results/utility/eval/samsum_Llama-2-7b-chat-hf_test2.json"
 
+
+# augmented
+# python eval_utility.py \
+#       --torch_dtype=bfloat16 \
+#       --model_name_or_path='/root/autodl-tmp/Llama-2-7b-chat-augmented' \
+#       --dataset='sql_create_context' \
+#       --model_family='llama2' \
+#       --prompt_style='llama2' \
+#       --evaluator='rouge_1' \
+#       --save_path="results/utility/eval/sql_create_context_Llama-2-7b-chat-augmented_test2.json"
 
 # python eval_utility.py \
 #       --torch_dtype=bfloat16 \
-#       --model_name_or_path='/root/autodl-tmp/Llama-2-7b-chat-hf' \
+#       --model_name_or_path='/root/autodl-tmp/Llama-2-7b-chat-augmented' \
+#       --dataset='gsm8k' \
+#       --model_family='llama2' \
+#       --prompt_style='llama2' \
+#       --evaluator='gsm8k' \
+#       --save_path="results/utility/eval/gsm8k_Llama-2-7b-chat-augmented_test2.json"
+
+# python eval_utility.py \
+#       --torch_dtype=bfloat16 \
+#       --model_name_or_path='/root/autodl-tmp/Llama-2-7b-chat-augmented' \
 #       --dataset='samsum' \
 #       --model_family='llama2' \
 #       --prompt_style='llama2' \
 #       --evaluator='rouge_1' \
-#       --save_path="logs/fine-tuning-attack/utility_eval/samsum_Llama-2-7b-chat-hf.json"
+#       --save_path="results/utility/eval/samsum_Llama-2-7b-chat-augmented_test2.json"
+
 
 # Llama-2-7b-chat-dropout0.01_skip_anchor
 # python eval_utility.py \
@@ -37,17 +64,17 @@ python eval_utility.py \
 #       --model_family='llama2' \
 #       --prompt_style='llama2' \
 #       --evaluator='rouge_1' \
-#       --save_path="logs/fine-tuning-attack/utility_eval/sql_create_context_Llama-2-7b-chat-dropout0.01_skip_anchor.json"
+#       --save_path="results/utility/eval/sql_create_context_Llama-2-7b-chat-dropout0.01_skip_anchor.json"
 
 
-python eval_utility.py \
-      --torch_dtype=bfloat16 \
-      --model_name_or_path='/root/autodl-tmp/Llama-2-7b-chat-dropout0.01_skip_anchor' \
-      --dataset='gsm8k' \
-      --model_family='llama2' \
-      --prompt_style='llama2' \
-      --evaluator='gsm8k' \
-      --save_path="logs/fine-tuning-attack/utility_eval/gsm8k_Llama-2-7b-chat-dropout0.01_skip_anchor-test2.json"
+# python eval_utility.py \
+#       --torch_dtype=bfloat16 \
+#       --model_name_or_path='/root/autodl-tmp/Llama-2-7b-chat-dropout0.01_skip_anchor' \
+#       --dataset='gsm8k' \
+#       --model_family='llama2' \
+#       --prompt_style='llama2' \
+#       --evaluator='gsm8k' \
+#       --save_path="results/utility/eval/gsm8k_Llama-2-7b-chat-dropout0.01_skip_anchor-test2.json"
 
 
 # python eval_utility.py \
@@ -57,7 +84,7 @@ python eval_utility.py \
 #       --model_family='llama2' \
 #       --prompt_style='llama2' \
 #       --evaluator='rouge_1' \
-#       --save_path="logs/fine-tuning-attack/utility_eval/samsum_Llama-2-7b-chat-dropout0.01_skip_anchor.json"
+#       --save_path="results/utility/eval/samsum_Llama-2-7b-chat-dropout0.01_skip_anchor.json"
 
 
 # Llama-2-7b-chat-dropout0.05_skip_anchor
@@ -68,17 +95,17 @@ python eval_utility.py \
 #       --model_family='llama2' \
 #       --prompt_style='llama2' \
 #       --evaluator='rouge_1' \
-#       --save_path="logs/fine-tuning-attack/utility_eval/sql_create_context_Llama-2-7b-chat-dropout0.05_skip_anchor.json"
+#       --save_path="results/utility/eval/sql_create_context_Llama-2-7b-chat-dropout0.05_skip_anchor.json"
 
 
-python eval_utility.py \
-      --torch_dtype=bfloat16 \
-      --model_name_or_path='/root/autodl-tmp/Llama-2-7b-chat-dropout0.05_skip_anchor' \
-      --dataset='gsm8k' \
-      --model_family='llama2' \
-      --prompt_style='llama2' \
-      --evaluator='gsm8k' \
-      --save_path="logs/fine-tuning-attack/utility_eval/gsm8k_Llama-2-7b-chat-dropout0.05_skip_anchor-test2.json"
+# python eval_utility.py \
+#       --torch_dtype=bfloat16 \
+#       --model_name_or_path='/root/autodl-tmp/Llama-2-7b-chat-dropout0.05_skip_anchor' \
+#       --dataset='gsm8k' \
+#       --model_family='llama2' \
+#       --prompt_style='llama2' \
+#       --evaluator='gsm8k' \
+#       --save_path="results/utility/eval/gsm8k_Llama-2-7b-chat-dropout0.05_skip_anchor-test2.json"
 
 
 # python eval_utility.py \
@@ -88,6 +115,6 @@ python eval_utility.py \
 #       --model_family='llama2' \
 #       --prompt_style='llama2' \
 #       --evaluator='rouge_1' \
-#       --save_path="logs/fine-tuning-attack/utility_eval/samsum_Llama-2-7b-chat-dropout0.05_skip_anchor.json"
+#       --save_path="results/utility/eval/samsum_Llama-2-7b-chat-dropout0.05_skip_anchor.json"
 
-shutdown -h now
+# shutdown -h now
