@@ -71,7 +71,8 @@ def get_attn_o_proj_input_hook(head_idx: int, num_heads: int, skip_hook_state: O
         activation = activation * mask
         
         # Prevent gradient propagation through the mask part
-        activation.register_hook(lambda grad: grad * mask)
+        if skip_hook_state is not None:
+            activation.register_hook(lambda grad: grad * mask)
         
         if isinstance(input, tuple):
             return (activation, *input[1:])
@@ -105,7 +106,8 @@ def get_mlp_down_proj_input_hook(head_idx: int, num_heads: int, skip_hook_state:
         activation = activation * mask
         
         # Prevent gradient propagation through the mask part
-        activation.register_hook(lambda grad: grad * mask)
+        if skip_hook_state is not None:
+            activation.register_hook(lambda grad: grad * mask)
         
         if isinstance(input, tuple):
             return (activation, *input[1:])
