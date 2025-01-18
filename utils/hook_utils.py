@@ -3,7 +3,7 @@ import torch
 import contextlib
 import functools
 
-from typing import List, Tuple, Callable, Any
+from typing import List, Tuple, Callable, Optional
 from jaxtyping import Float
 from torch import Tensor
 
@@ -46,7 +46,7 @@ def add_hooks(
 
 
 
-def get_attn_o_proj_input_hook(head_idx: int, num_heads: int, skip_hook_state: SkipHookState):
+def get_attn_o_proj_input_hook(head_idx: int, num_heads: int, skip_hook_state: Optional[SkipHookState] = None):
     def hook_fn(module, input):
         nonlocal head_idx
         nonlocal num_heads
@@ -65,7 +65,7 @@ def get_attn_o_proj_input_hook(head_idx: int, num_heads: int, skip_hook_state: S
         
         mask = torch.ones_like(activation)
         mask.requires_grad_(False)
-        if skip_hook_state.is_skip is False:
+        if skip_hook_state is None or skip_hook_state.is_skip is False:
             mask[:, :, start_idx:end_idx] = 0
         
         activation = activation * mask
@@ -79,7 +79,7 @@ def get_attn_o_proj_input_hook(head_idx: int, num_heads: int, skip_hook_state: S
             return activation
     return hook_fn
 
-def get_mlp_down_proj_input_hook(head_idx: int, num_heads: int, skip_hook_state: SkipHookState):
+def get_mlp_down_proj_input_hook(head_idx: int, num_heads: int, skip_hook_state: Optional[SkipHookState] = None):
     def hook_fn(module, input):
         nonlocal head_idx
         nonlocal num_heads
@@ -99,7 +99,7 @@ def get_mlp_down_proj_input_hook(head_idx: int, num_heads: int, skip_hook_state:
         mask = torch.ones_like(activation)
         mask.requires_grad_(False)
         
-        if skip_hook_state.is_skip is False:
+        if skip_hook_state is None or skip_hook_state.is_skip is False:
             mask[:, :, start_idx:end_idx] = 0
         
         activation = activation * mask
@@ -120,7 +120,7 @@ def get_attn_o_proj_hooks(
     layer_idx: int,
     head_idx: int,
     num_heads: int,
-    skip_hook_state: SkipHookState
+    skip_hook_state: Optional[SkipHookState] = None
 ):
     fwd_pre_hooks = [(model_base.layers[layer_idx].self_attn.o_proj, get_attn_o_proj_input_hook(head_idx=head_idx, num_heads=num_heads, skip_hook_state=skip_hook_state))]
     fwd_hooks = []
@@ -132,9 +132,34 @@ def get_mlp_down_proj_hooks(
     layer_idx: int,
     head_idx: int,
     num_heads: int,
-    skip_hook_state: SkipHookState
+    skip_hook_state: Optional[SkipHookState] = None
 ):
     fwd_pre_hooks = [(model_base.layers[layer_idx].mlp.down_proj, get_mlp_down_proj_input_hook(head_idx=head_idx, num_heads=num_heads, skip_hook_state=skip_hook_state))]
     fwd_hooks = []
 
+    return fwd_pre_hooks, fwd_hooks
+
+
+def get_hooks(
+    model,
+    component_dropout_idx_list: List[int],
+):
+    layer_num = len(model.model.layers)
+    head_num = model.model.layers[0].self_attn.num_heads
+    for component_idx in component_dropout_idx_list:
+        assert component_idx < layer_num * head_num * 2, f"Invalid component index: {component_idx}"
+        # attn component
+        if component_idx % 2 == 0:
+            layer_idx = component_idx // (head_num * 2)
+            head_idx = (component_idx // 2) % head_num
+            hook_pair = get_attn_o_proj_hooks(model.model, layer_idx=layer_idx, head_idx=head_idx, num_heads=head_num)
+            fwd_pre_hooks += hook_pair[0]
+            fwd_hooks += hook_pair[1]
+        # mlp component
+        else:
+            layer_idx = component_idx // (head_num * 2)
+            head_idx = (component_idx // 2) % head_num
+            hook_pair = get_mlp_down_proj_hooks(model.model, layer_idx=layer_idx, head_idx=head_idx, num_heads=head_num)
+            fwd_pre_hooks += hook_pair[0]
+            fwd_hooks += hook_pair[1]
     return fwd_pre_hooks, fwd_hooks

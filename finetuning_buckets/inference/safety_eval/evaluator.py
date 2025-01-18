@@ -10,6 +10,8 @@ from torch.utils.data import DataLoader, Dataset
 from accelerate.state import PartialState
 import torch
 
+from utils.hook_utils import get_hooks, add_hooks
+
 class MyDataset(Dataset):
     def __init__(self, data_list):
         self.data_list = data_list
@@ -107,7 +109,9 @@ def eval_safety_in_batch(model, prompt_style, tokenizer, num_prefix_tokens = 0, 
                 system_prompt = None, input_template = None, output_header = None, 
                 max_new_tokens = 512, 
                 do_sample = True, top_p = 0.9, temperature = 0.6, use_cache = True, top_k = 50,
-                repetition_penalty = 1.0, length_penalty = 1.0, **kwargs):
+                repetition_penalty = 1.0, length_penalty = 1.0,
+                use_component_level_dropout = False,
+                component_dropout_idx_list = None, **kwargs):
     
     accelerator = Accelerator()
 
@@ -144,116 +148,119 @@ def eval_safety_in_batch(model, prompt_style, tokenizer, num_prefix_tokens = 0, 
     model = accelerator.prepare(model)
     model.eval()
     
+    fwd_pre_hooks, fwd_hooks = [], []
+    if use_component_level_dropout:
+        fwd_pre_hooks, fwd_hooks = get_hooks(model, component_dropout_idx_list)
 
-    Generator = chat.Chat(model = model, prompt_style = prompt_style, tokenizer = tokenizer,
-                         init_system_prompt = system_prompt)
-    
+    with add_hooks(module_forward_pre_hooks=fwd_pre_hooks, module_forward_hooks=fwd_hooks):
+        Generator = chat.Chat(model = model, prompt_style = prompt_style, tokenizer = tokenizer,
+                            init_system_prompt = system_prompt)
+        
+        results = []
+        cnt = 0
 
-    results = []
-    cnt = 0
+        for batch in tqdm(data_loader):
+        
+        
+            with torch.inference_mode():
+                
+                batch_input_sample = batch
 
-    for batch in tqdm(data_loader):
-    
-       
-       with torch.inference_mode():
-            
-            batch_input_sample = batch
+                output_texts, full_texts = Generator.generate_one_shot_in_batch(inputs = batch_input_sample, accelerator = accelerator,
+                                                max_new_tokens = max_new_tokens, do_sample = do_sample, top_p = top_p, temperature = temperature, 
+                                                use_cache = use_cache, top_k = top_k, repetition_penalty = repetition_penalty, 
+                                                length_penalty = length_penalty, **kwargs)
 
-            output_texts, full_texts = Generator.generate_one_shot_in_batch(inputs = batch_input_sample, accelerator = accelerator,
-                                            max_new_tokens = max_new_tokens, do_sample = do_sample, top_p = top_p, temperature = temperature, 
-                                            use_cache = use_cache, top_k = top_k, repetition_penalty = repetition_penalty, 
-                                            length_penalty = length_penalty, **kwargs)
+                accelerator.wait_for_everyone()
 
-            accelerator.wait_for_everyone()
-
-
-            
-            num_samples = len(output_texts)
-            for i in range(num_samples):
-
-                len_output = len(output_texts[i])
-                Question = full_texts[i][:len(full_texts[i]) - len_output]
-                Answer = output_texts[i]
-
-                results.append( batch_input_sample[i] + [{'role' : 'assistant', 'content' : Answer}] )
 
                 
+                num_samples = len(output_texts)
+                for i in range(num_samples):
+
+                    len_output = len(output_texts[i])
+                    Question = full_texts[i][:len(full_texts[i]) - len_output]
+                    Answer = output_texts[i]
+
+                    results.append( batch_input_sample[i] + [{'role' : 'assistant', 'content' : Answer}] )
+
+                    
+                    
+                    if accelerator.is_local_main_process:
+                        print(f'>>> Example - {i+1}')
+
+                        print('Q :', Question)
+                        print('\n')
+
+                        print('A :', Answer)
+                        print('\n')
+                        print('----------------')
+
+
+
+
+        results_serialized = torch.tensor( bytearray( json.dumps(results).encode('utf-8') ), dtype=torch.uint8 ).to(accelerator.device)
+        results_serialized = results_serialized.unsqueeze(0)
+        results_serialized = accelerator.pad_across_processes(results_serialized, dim=1, pad_index=0)
+        gathered_padded_tensors = accelerator.gather(results_serialized).cpu()
+
+
+        if accelerator.is_local_main_process:
+
+            results_all = []
+            idx = 0
+            for t in gathered_padded_tensors:
+                idx += 1
+                data = t.numpy().tobytes().rstrip(b'\x00')
+                results_all += json.loads(data.decode('utf-8'))
+            
+            results = results_all
+
+            results_deduplicated = []
+            evaluated_instances = set()
+
+            for i, item in enumerate(results):
                 
-                if accelerator.is_local_main_process:
-                    print(f'>>> Example - {i+1}')
+                print('\n\n\n')
 
-                    print('Q :', Question)
-                    print('\n')
+                print(f'>>> Example - {i+1}')
 
-                    print('A :', Answer)
-                    print('\n')
-                    print('----------------')
+                Q = item[1]['content'] if item[1]['role'] == 'user' else item[0]['content']
+                A = item[-1]['content']
 
+                print('Q :', Q)
+                print('\n')
 
+                print('A :', A)
+                print('----------------')
 
+                
+                print('\n\n\n')
 
-    results_serialized = torch.tensor( bytearray( json.dumps(results).encode('utf-8') ), dtype=torch.uint8 ).to(accelerator.device)
-    results_serialized = results_serialized.unsqueeze(0)
-    results_serialized = accelerator.pad_across_processes(results_serialized, dim=1, pad_index=0)
-    gathered_padded_tensors = accelerator.gather(results_serialized).cpu()
-
-
-    if accelerator.is_local_main_process:
-
-        results_all = []
-        idx = 0
-        for t in gathered_padded_tensors:
-            idx += 1
-            data = t.numpy().tobytes().rstrip(b'\x00')
-            results_all += json.loads(data.decode('utf-8'))
-        
-        results = results_all
-
-        results_deduplicated = []
-        evaluated_instances = set()
-
-        for i, item in enumerate(results):
+                if Q not in evaluated_instances:
+                    results_deduplicated.append(item)
+                    evaluated_instances.add(Q)
             
-            print('\n\n\n')
+            results = results_deduplicated
 
-            print(f'>>> Example - {i+1}')
-
-            Q = item[1]['content'] if item[1]['role'] == 'user' else item[0]['content']
-            A = item[-1]['content']
-
-            print('Q :', Q)
-            print('\n')
-
-            print('A :', A)
-            print('----------------')
-
+            if evaluator == 'none':
+                metric = None    
+            elif evaluator == 'key_word':
+                metric = key_word_asr(results)
+            elif evaluator == 'chatgpt':
+                metric = chatgpt_asr(plain_text, results)
+            else:
+                raise ValueError('Evaluator {} not maintained'.format(evaluator))
             
-            print('\n\n\n')
+            log = {
+                'results' : results,
+                'metrics' : metric
+            }
 
-            if Q not in evaluated_instances:
-                results_deduplicated.append(item)
-                evaluated_instances.add(Q)
-        
-        results = results_deduplicated
+            print(metric)
 
-        if evaluator == 'none':
-            metric = None    
-        elif evaluator == 'key_word':
-            metric = key_word_asr(results)
-        elif evaluator == 'chatgpt':
-            metric = chatgpt_asr(plain_text, results)
-        else:
-            raise ValueError('Evaluator {} not maintained'.format(evaluator))
-        
-        log = {
-            'results' : results,
-            'metrics' : metric
-        }
-
-        print(metric)
-
-        if save_path is not None:
-            import os
-            os.makedirs(os.path.dirname(save_path), exist_ok=True)
-            with open(save_path, 'w') as f:
-                json.dump(log, f)
+            if save_path is not None:
+                import os
+                os.makedirs(os.path.dirname(save_path), exist_ok=True)
+                with open(save_path, 'w') as f:
+                    json.dump(log, f)

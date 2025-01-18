@@ -45,7 +45,7 @@ class ScriptArguments:
     use_warmup: bool = field(default=False, metadata={"help": "Whether to use warmup"})
 
     use_component_level_dropout: bool = field(default=False, metadata={"help": "Whether to use component level drop out"})
-    component_level_dropout_rate: float = field(default=0.2, metadata={"help": "The component level drop out rate"})
+    component_level_dropout_rate: float = field(default=0.01, metadata={"help": "The component level drop out rate"})
     
     use_skip_anchor_dropout: bool = field(default=False, metadata={"help": "Whether to skip anchor dropout"})
 

@@ -17,7 +17,7 @@ python eval_utility.py \
       --model_family='llama2' \
       --prompt_style='llama2' \
       --evaluator='gsm8k' \
-      --save_path="logs/fine-tuning-attack/utility_eval/gsm8k_Llama-2-7b-chat-hf.json"
+      --save_path="logs/fine-tuning-attack/utility_eval/gsm8k_Llama-2-7b-chat-hf-test2.json"
 
 
 # python eval_utility.py \
@@ -47,7 +47,7 @@ python eval_utility.py \
       --model_family='llama2' \
       --prompt_style='llama2' \
       --evaluator='gsm8k' \
-      --save_path="logs/fine-tuning-attack/utility_eval/gsm8k_Llama-2-7b-chat-dropout0.01_skip_anchor.json"
+      --save_path="logs/fine-tuning-attack/utility_eval/gsm8k_Llama-2-7b-chat-dropout0.01_skip_anchor-test2.json"
 
 
 # python eval_utility.py \
@@ -78,7 +78,7 @@ python eval_utility.py \
       --model_family='llama2' \
       --prompt_style='llama2' \
       --evaluator='gsm8k' \
-      --save_path="logs/fine-tuning-attack/utility_eval/gsm8k_Llama-2-7b-chat-dropout0.05_skip_anchor.json"
+      --save_path="logs/fine-tuning-attack/utility_eval/gsm8k_Llama-2-7b-chat-dropout0.05_skip_anchor-test2.json"
 
 
 # python eval_utility.py \

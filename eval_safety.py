@@ -4,6 +4,7 @@ from transformers import HfArgumentParser
 from trl import ModelConfig, get_kbit_device_map, get_peft_config, get_quantization_config
 from dataclasses import dataclass, field
 import torch
+from typing import List
 
 from finetuning_buckets.models import get_model
 from finetuning_buckets.inference.safety_eval import evaluator
@@ -38,6 +39,10 @@ class ScriptArguments:
     # applied when evaluating the prefilling of a certain number of tokens
     num_perfix_tokens: int = field(default=0, metadata={"help": "the number of prefix tokens"})
 
+    # applied when evaluation component_level_dropout
+    use_component_level_dropout: bool = field(default=False, metadata={"help": "Whether to use component level drop out"})
+    component_dropout_idx_list: List[int] = field(default_factory=list, metadata={"help": "The component dropout idx"})
+    
 
 if __name__ == "__main__":
 
@@ -90,4 +95,6 @@ if __name__ == "__main__":
                 system_prompt = system_prompt, input_template = input_template, output_header = output_header,
                 max_new_tokens = args.max_new_tokens, 
                 do_sample = args.do_sample, top_p = args.top_p, temperature = args.temperature, use_cache = args.use_cache, top_k = args.top_k,
-                repetition_penalty = args.repetition_penalty, length_penalty = args.length_penalty)
+                repetition_penalty = args.repetition_penalty, length_penalty = args.length_penalty,
+                use_component_level_dropout = args.use_component_level_dropout,
+                component_dropout_idx_list = args.component_dropout_idx_list)
