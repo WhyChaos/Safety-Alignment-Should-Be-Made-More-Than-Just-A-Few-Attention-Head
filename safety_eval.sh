@@ -63,7 +63,7 @@ python eval_safety.py --model_name_or_path="/root/autodl-tmp/Llama-2-7b-chat-hf"
       --safety_bench='hex-phi' \
       --model_family='llama2_base' \
       --prompt_style='llama2_base' \
-      --save_path='results/safety/competition/Llama-2-7b-chat-hf-top-1.json' \
+      --save_path='results/safety/competition/Llama-2-7b-chat-hf-top-20.json' \
       --eval_template='plain' \
       --use_component_level_dropout=True \
       --component_dropout_idx_list \
@@ -78,7 +78,7 @@ python eval_safety.py --model_name_or_path="/root/autodl-tmp/Llama-2-7b-chat-dro
       --safety_bench='hex-phi' \
       --model_family='llama2_base' \
       --prompt_style='llama2_base' \
-      --save_path='results/safety/competition/Llama-2-7b-chat-dropout0.01_skip_anchor-top-1.json' \
+      --save_path='results/safety/competition/Llama-2-7b-chat-dropout0.01_skip_anchor-top-20.json' \
       --eval_template='plain' \
       --use_component_level_dropout=True \
       --component_dropout_idx_list \

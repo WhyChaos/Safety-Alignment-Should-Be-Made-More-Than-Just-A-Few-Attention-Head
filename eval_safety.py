@@ -5,6 +5,7 @@ from trl import ModelConfig, get_kbit_device_map, get_peft_config, get_quantizat
 from dataclasses import dataclass, field
 import torch
 from typing import List
+import json
 
 from finetuning_buckets.models import get_model
 from finetuning_buckets.inference.safety_eval import evaluator
@@ -41,8 +42,7 @@ class ScriptArguments:
 
     # applied when evaluation component_level_dropout
     use_component_level_dropout: bool = field(default=False, metadata={"help": "Whether to use component level drop out"})
-    component_dropout_idx_list: List[int] = field(default_factory=list, metadata={"help": "The component dropout idx"})
-    
+    component_dropout_num: int = field(default_factory=0, metadata={"help": "The component dropout num"})
 
 if __name__ == "__main__":
 
@@ -88,6 +88,16 @@ if __name__ == "__main__":
     if args.num_perfix_tokens > 0 and (args.safety_bench not in ["hex-phi_with_refusal_prefix", 'hex-phi_with_harmful_prefix']):
         raise ValueError("num_perfix_tokens should only be used with hex-phi_with_refusal_prefix or hex-phi_with_harmful_prefix")
 
+    args.component_dropout_idx_list = [] 
+    if args.use_component_level_dropout:
+        if "drop" not in model_config.model_name_or_path:
+            with open('results/kl/combined/Llama-2-7b-chat-hf.json', 'r', encoding='utf-8') as file:
+                combine_kl_list = json.load(file)
+        else:
+            with open('results/kl/combined/Llama-2-7b-chat-dropout0.01_skip_anchor.json', 'r', encoding='utf-8') as file:
+                combine_kl_list = json.load(file)
+        for component in combine_kl_list[:args.component_dropout_num]:
+            args.component_dropout_idx_list.append(component["component_idx"])  
     
     evaluator.eval_safety_in_batch(model, args.prompt_style, tokenizer, num_prefix_tokens = args.num_perfix_tokens, 
                 save_path = args.save_path, batch_size_per_device = args.batch_size_per_device,
