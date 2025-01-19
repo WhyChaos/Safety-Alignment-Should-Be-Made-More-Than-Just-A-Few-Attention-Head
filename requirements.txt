@@ -8,3 +8,4 @@ datasets==2.18.0
 jaxtyping==0.2.36
 openai
 matplotlib
+ipykernel
