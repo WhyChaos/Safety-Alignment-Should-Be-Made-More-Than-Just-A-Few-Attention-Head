@@ -150,6 +150,7 @@ def get_hooks(
 ):
     layer_num = len(model.model.layers)
     head_num = model.model.layers[0].self_attn.num_heads
+    fwd_pre_hooks, fwd_hooks = [], []
     for component_idx in component_dropout_idx_list:
         component_type, layer_idx, head_idx = component_utils.disassemble_component_idx(component_idx, layer_num, head_num)
         # attn component
