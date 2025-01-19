@@ -33,4 +33,5 @@ python eval_safety.py --model_name_or_path="/root/autodl-tmp/Llama-2-7b-chat-hf"
       --prompt_style='llama2_base' \
       --save_path='results/safety/competition/Llama-2-7b-chat-hf-top-1.json' \
       --eval_template='plain' \
+      --use_component_level_dropout=True \
       --component_dropout_idx_list 1967

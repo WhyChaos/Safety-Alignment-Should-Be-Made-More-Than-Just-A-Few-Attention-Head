@@ -9,3 +9,4 @@ jaxtyping==0.2.36
 openai
 matplotlib
 ipykernel
+rouge-score
