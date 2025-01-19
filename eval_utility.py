@@ -4,6 +4,7 @@ from transformers import HfArgumentParser
 from trl import ModelConfig, get_kbit_device_map, get_peft_config, get_quantization_config
 from dataclasses import dataclass, field
 import torch
+from typing import List
 
 from finetuning_buckets.models import get_model
 from finetuning_buckets.inference.utility_eval import evaluator
@@ -31,6 +32,10 @@ class ScriptArguments:
     repetition_penalty: float = field(default=1.0, metadata={"help": "repetition penalty"})
     length_penalty: float = field(default=1.0, metadata={"help": "length penalty"})
 
+    # applied when evaluation component_level_dropout
+    use_component_level_dropout: bool = field(default=False, metadata={"help": "Whether to use component level drop out"})
+    component_dropout_idx_list: List[int] = field(default_factory=list, metadata={"help": "The component dropout idx"})
+    
 
 if __name__ == "__main__":
 
@@ -67,4 +72,5 @@ if __name__ == "__main__":
                 bench = args.dataset, evaluator = args.evaluator,  #max_eval_samples = 100,
                 max_new_tokens = args.max_new_tokens, 
                 do_sample = args.do_sample, top_p = args.top_p, temperature = args.temperature, use_cache = args.use_cache, top_k = args.top_k,
-                repetition_penalty = args.repetition_penalty, length_penalty = args.length_penalty)
+                repetition_penalty = args.repetition_penalty, length_penalty = args.length_penalty,
+                use_component_level_dropout = args.use_component_level_dropout, component_dropout_idx_list = args.component_dropout_idx_list)

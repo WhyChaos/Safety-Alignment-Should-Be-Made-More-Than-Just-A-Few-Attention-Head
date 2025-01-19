@@ -7,6 +7,8 @@ from typing import List, Tuple, Callable, Optional
 from jaxtyping import Float
 from torch import Tensor
 
+from utils import component_utils
+
 
 class SkipHookState:
     def __init__(self):
@@ -149,19 +151,17 @@ def get_hooks(
     layer_num = len(model.model.layers)
     head_num = model.model.layers[0].self_attn.num_heads
     for component_idx in component_dropout_idx_list:
-        assert component_idx < layer_num * head_num * 2, f"Invalid component index: {component_idx}"
+        component_type, layer_idx, head_idx = component_utils.disassemble_component_idx(component_idx, layer_num, head_num)
         # attn component
-        if component_idx % 2 == 0:
-            layer_idx = component_idx // (head_num * 2)
-            head_idx = (component_idx // 2) % head_num
+        if component_type == 'attn':
             hook_pair = get_attn_o_proj_hooks(model.model, layer_idx=layer_idx, head_idx=head_idx, num_heads=head_num)
             fwd_pre_hooks += hook_pair[0]
             fwd_hooks += hook_pair[1]
         # mlp component
-        else:
-            layer_idx = component_idx // (head_num * 2)
-            head_idx = (component_idx // 2) % head_num
+        elif component_type == 'mlp':
             hook_pair = get_mlp_down_proj_hooks(model.model, layer_idx=layer_idx, head_idx=head_idx, num_heads=head_num)
             fwd_pre_hooks += hook_pair[0]
             fwd_hooks += hook_pair[1]
+        else:
+            raise(ValueError(f"Unknown component type: {component_type}"))
     return fwd_pre_hooks, fwd_hooks
