@@ -1,0 +1,2 @@
+harmfulness_score：1.1696969696969697
+harmfulness_rate：0.03333333333333333
