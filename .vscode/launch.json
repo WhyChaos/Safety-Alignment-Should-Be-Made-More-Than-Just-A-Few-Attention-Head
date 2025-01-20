@@ -2,29 +2,20 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python: eval_utility",
+            "name": "Python: eval_safety.py",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/eval_utility.py",
+            "program": "${workspaceFolder}/eval_safety.py",
             "args": [
-                "--torch_dtype",
-                "bfloat16",
-                "--model_name_or_path",
-                "/root/autodl-tmp/Llama-2-7b-chat-hf",
-                "--dataset",
-                "sql_create_context",
-                "--model_family",
-                "llama2",
-                "--prompt_style",
-                "llama2",
-                "--evaluator",
-                "rouge_1",
-                "--use_component_level_dropout",
-                "True",
-                "--component_dropout_idx_list",
-                "1967",
-                "--save_path",
-                "results/utility/eval/sql_create_context_Llama-2-7b-chat-hf_top-1.json"
+                "--model_name_or_path=/root/autodl-tmp/Llama-2-7b-chat-hf",
+                "--torch_dtype=bfloat16",
+                "--safety_bench=hex-phi",
+                "--model_family=llama2_base",
+                "--prompt_style=llama2_base",
+                "--save_path=results/safety/competition/Llama-2-7b-chat-hf-top-200.json",
+                "--eval_template=plain",
+                "--use_component_level_dropout=True",
+                "--component_dropout_num=200"
             ],
             "console": "integratedTerminal"
         }

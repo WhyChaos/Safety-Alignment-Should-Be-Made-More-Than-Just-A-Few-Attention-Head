@@ -42,7 +42,7 @@ class ScriptArguments:
 
     # applied when evaluation component_level_dropout
     use_component_level_dropout: bool = field(default=False, metadata={"help": "Whether to use component level drop out"})
-    component_dropout_num: int = field(default_factory=0, metadata={"help": "The component dropout num"})
+    component_dropout_num: int = field(default=0, metadata={"help": "The component dropout num"})
 
 if __name__ == "__main__":
 
