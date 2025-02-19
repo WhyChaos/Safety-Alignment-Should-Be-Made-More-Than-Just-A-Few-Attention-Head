@@ -1,126 +1,48 @@
-# # baseline safety evaluation for Llama-2-7b-chat-hf
-# python eval_safety.py --model_name_or_path="/root/autodl-tmp/Llama-2-7b-chat-hf" \
-#       --torch_dtype=bfloat16 \
-#       --safety_bench='hex-phi' \
-#       --model_family='llama2_base' \
-#       --prompt_style='llama2_base' \
-#       --save_path='results/safety/competition/Llama-2-7b-chat-hf.json' \
-#       --eval_template='plain'
-
-# safety evaluation for Llama-2-7b-chat-augmented
-# python eval_safety.py --model_name_or_path="/root/autodl-tmp/Llama-2-7b-chat-augmented" \
-#       --torch_dtype=bfloat16 \
-#       --safety_bench='hex-phi' \
-#       --model_family='llama2_base' \
-#       --prompt_style='llama2_base' \
-#       --save_path='results/safety/competition/Llama-2-7b-chat-augmented.json' \
-#       --eval_template='plain'
-
-# # safety evaluation for Llama-2-7b-chat-dropout0.05_skip_anchor
-# python eval_safety.py --model_name_or_path="/root/autodl-tmp/Llama-2-7b-chat-dropout0.05_skip_anchor" \
-#       --torch_dtype=bfloat16 \
-#       --safety_bench='hex-phi' \
-#       --model_family='llama2_base' \
-#       --prompt_style='llama2_base' \
-#       --save_path='results/safety/competition/Llama-2-7b-chat-dropout0.05_skip_anchor.json' \
-#       --eval_template='plain'
-
-# # safety evaluation for Llama-2-7b-chat-dropout0.01_skip_anchor
-# python eval_safety.py --model_name_or_path="/root/autodl-tmp/Llama-2-7b-chat-dropout0.01_skip_anchor" \
-#       --torch_dtype=bfloat16 \
-#       --safety_bench='hex-phi' \
-#       --model_family='llama2_base' \
-#       --prompt_style='llama2_base' \
-#       --save_path='results/safety/competition/Llama-2-7b-chat-dropout0.01_skip_anchor.json' \
-#       --eval_template='plain'
-
-# # safety evaluation for Llama-2-7b-chat-hf-top-1
-# python eval_safety.py --model_name_or_path="/root/autodl-tmp/Llama-2-7b-chat-hf" \
-#       --torch_dtype=bfloat16 \
-#       --safety_bench='hex-phi' \
-#       --model_family='llama2_base' \
-#       --prompt_style='llama2_base' \
-#       --save_path='results/safety/competition/Llama-2-7b-chat-hf-top-1.json' \
-#       --eval_template='plain' \
-#       --use_component_level_dropout=True \
-#       --component_dropout_idx_list 1967
-
-# # safety evaluation for Llama-2-7b-chat-dropout0.01_skip_anchor-top-1
-# python eval_safety.py --model_name_or_path="/root/autodl-tmp/Llama-2-7b-chat-dropout0.01_skip_anchor" \
-#       --torch_dtype=bfloat16 \
-#       --safety_bench='hex-phi' \
-#       --model_family='llama2_base' \
-#       --prompt_style='llama2_base' \
-#       --save_path='results/safety/competition/Llama-2-7b-chat-dropout0.01_skip_anchor-top-1.json' \
-#       --eval_template='plain' \
-#       --use_component_level_dropout=True \
-#       --component_dropout_idx_list 1967
-
-
-# safety evaluation for Llama-2-7b-chat-hf-top-300
-python eval_safety.py --model_name_or_path="/root/autodl-tmp/Llama-2-7b-chat-hf" \
+python eval_safety.py --model_name_or_path="/root/workspace/Llama-2-7b-chat-attn-head-dropout-0.5-GPU1" \
       --torch_dtype=bfloat16 \
       --safety_bench='hex-phi' \
-      --model_family='llama2_base' \
-      --prompt_style='llama2_base' \
-      --save_path='results/safety/competition/Llama-2-7b-chat-hf-top-300.json' \
-      --eval_template='plain' \
-      --use_component_level_dropout=True \
-      --component_dropout_num=300
+      --model_family='llama2' \
+      --prompt_style='llama2' \
+      --evaluator='none' \
+      --save_path='new_results/dropout5gpu1/llama2_chat_no_prefilling.json' \
+      --eval_template='null' 
 
-# safety evaluation for Llama-2-7b-chat-dropout0.01_skip_anchor-top-300
-python eval_safety.py --model_name_or_path="/root/autodl-tmp/Llama-2-7b-chat-dropout0.01_skip_anchor" \
+python eval_safety.py --model_name_or_path="/root/workspace/Llama-2-7b-chat-attn-head-dropout-0.5-GPU1" \
       --torch_dtype=bfloat16 \
-      --safety_bench='hex-phi' \
-      --model_family='llama2_base' \
-      --prompt_style='llama2_base' \
-      --save_path='results/safety/competition/Llama-2-7b-chat-dropout0.01_skip_anchor-top-300.json' \
-      --eval_template='plain' \
-      --use_component_level_dropout=True \
-      --component_dropout_num=300
+      --safety_bench='hex-phi_with_harmful_prefix' \
+      --model_family='llama2' \
+      --prompt_style='llama2' \
+      --evaluator='none' \
+      --save_path='new_results/dropout5gpu1/llama2_chat_prefilled_5_harmful_tokens.json' \
+      --eval_template='null' \
+      --num_perfix_tokens=5
 
-# safety evaluation for Llama-2-7b-chat-hf-top-400
-python eval_safety.py --model_name_or_path="/root/autodl-tmp/Llama-2-7b-chat-hf" \
+python eval_safety.py --model_name_or_path="/root/workspace/Llama-2-7b-chat-attn-head-dropout-0.5-GPU1" \
       --torch_dtype=bfloat16 \
-      --safety_bench='hex-phi' \
-      --model_family='llama2_base' \
-      --prompt_style='llama2_base' \
-      --save_path='results/safety/competition/Llama-2-7b-chat-hf-top-400.json' \
-      --eval_template='plain' \
-      --use_component_level_dropout=True \
-      --component_dropout_num=400
+      --safety_bench='hex-phi_with_harmful_prefix' \
+      --model_family='llama2' \
+      --prompt_style='llama2' \
+      --evaluator='none' \
+      --save_path='new_results/dropout5gpu1/llama2_chat_prefilled_10_harmful_tokens.json' \
+      --eval_template='null' \
+      --num_perfix_tokens=10
 
-# safety evaluation for Llama-2-7b-chat-dropout0.01_skip_anchor-top-400
-python eval_safety.py --model_name_or_path="/root/autodl-tmp/Llama-2-7b-chat-dropout0.01_skip_anchor" \
+python eval_safety.py --model_name_or_path="/root/workspace/Llama-2-7b-chat-attn-head-dropout-0.5-GPU1" \
       --torch_dtype=bfloat16 \
-      --safety_bench='hex-phi' \
-      --model_family='llama2_base' \
-      --prompt_style='llama2_base' \
-      --save_path='results/safety/competition/Llama-2-7b-chat-dropout0.01_skip_anchor-top-400.json' \
-      --eval_template='plain' \
-      --use_component_level_dropout=True \
-      --component_dropout_num=400
+      --safety_bench='hex-phi_with_harmful_prefix' \
+      --model_family='llama2' \
+      --prompt_style='llama2' \
+      --evaluator='none' \
+      --save_path='new_results/dropout5gpu1/llama2_chat_prefilled_20_harmful_tokens.json' \
+      --eval_template='null' \
+      --num_perfix_tokens=20
 
-# safety evaluation for Llama-2-7b-chat-hf-top-500
-python eval_safety.py --model_name_or_path="/root/autodl-tmp/Llama-2-7b-chat-hf" \
+python eval_safety.py --model_name_or_path="/root/workspace/Llama-2-7b-chat-attn-head-dropout-0.5-GPU1" \
       --torch_dtype=bfloat16 \
-      --safety_bench='hex-phi' \
-      --model_family='llama2_base' \
-      --prompt_style='llama2_base' \
-      --save_path='results/safety/competition/Llama-2-7b-chat-hf-top-500.json' \
-      --eval_template='plain' \
-      --use_component_level_dropout=True \
-      --component_dropout_num=500
-
-# safety evaluation for Llama-2-7b-chat-dropout0.01_skip_anchor-top-500
-python eval_safety.py --model_name_or_path="/root/autodl-tmp/Llama-2-7b-chat-dropout0.01_skip_anchor" \
-      --torch_dtype=bfloat16 \
-      --safety_bench='hex-phi' \
-      --model_family='llama2_base' \
-      --prompt_style='llama2_base' \
-      --save_path='results/safety/competition/Llama-2-7b-chat-dropout0.01_skip_anchor-top-500.json' \
-      --eval_template='plain' \
-      --use_component_level_dropout=True \
-      --component_dropout_num=500
-
-shutdown -h now
+      --safety_bench='hex-phi_with_harmful_prefix' \
+      --model_family='llama2' \
+      --prompt_style='llama2' \
+      --evaluator='none' \
+      --save_path='new_results/dropout5gpu1/llama2_chat_prefilled_40_harmful_tokens.json' \
+      --eval_template='null' \
+      --num_perfix_tokens=40

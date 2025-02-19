@@ -1,3 +1,50 @@
+# origin 
+
+# python finetune.py --model_name_or_path="/root/workspace/Llama-2-7b-chat-hf" \
+#   --dataset_name="safety_augmentation" --model_family="llama2" \
+#   --learning_rate=2e-5 \
+#   --per_device_train_batch_size=4 \
+#   --gradient_accumulation_steps=1 \
+#   --output_dir="/root/workspace/cul11efhri0c73apfdng/Llama-2-7b-chat-augmented" \
+#   --logging_steps=1 \
+#   --num_train_epochs=10 \
+#   --gradient_checkpointing \
+#   --report_to=none \
+#   --torch_dtype=bfloat16 --bf16=True --bf16_full_eval=True \
+#   --save_strategy='no' \
+#   --sft_type="sft" \
+#   --use_anchor=True \
+#   --anchor_batch_size_per_device=16 \
+#   --safety_augmentation=True \
+#   --use_warmup=False \
+#   --train_log_name="train_log_augmented"
+
+# attn_head dropout 0.5
+
+# accelerate launch --config_file=accelerate_configs/deepspeed_zero2.yaml --num_processes 1 \
+python finetune.py --model_name_or_path="/root/workspace/Llama-2-7b-chat-attn-head-dropout-0.5-GPU1" \
+  --dataset_name="safety_augmentation" --model_family="llama2" \
+  --learning_rate=2e-5 \
+  --per_device_train_batch_size=4 \
+  --gradient_accumulation_steps=1 \
+  --output_dir="/root/workspace/cul11efhri0c73apfdng/Llama-2-7b-chat-attn-head-dropout-0.5-GPU1-epoch20" \
+  --logging_steps=1 \
+  --num_train_epochs=10 \
+  --gradient_checkpointing \
+  --report_to=none \
+  --torch_dtype=bfloat16 --bf16=True --bf16_full_eval=True \
+  --save_strategy='no' \
+  --sft_type="sft" \
+  --use_anchor=True \
+  --anchor_batch_size_per_device=16 \
+  --safety_augmentation=False \
+  --use_warmup=False \
+  --use_attention_head_level_dropout=True \
+  --head_attn_level_dropout_rate=0.5 \
+  --use_skip_anchor_dropout=True \
+  --train_log_name="train_log_attn_head_dropout_0.5-epoch20"
+
+
 # # dropout include anchor
 # python finetune.py --model_name_or_path="/root/autodl-tmp/Llama-2-7b-chat-hf" \
 #   --dataset_name="safety_augmentation" --model_family="llama2" \

@@ -44,11 +44,15 @@ class ScriptArguments:
     # whether to use warmup for the optimizer
     use_warmup: bool = field(default=False, metadata={"help": "Whether to use warmup"})
 
-    use_component_level_dropout: bool = field(default=False, metadata={"help": "Whether to use component level drop out"})
-    component_level_dropout_rate: float = field(default=0.01, metadata={"help": "The component level drop out rate"})
+    # use_component_level_dropout: bool = field(default=False, metadata={"help": "Whether to use component level drop out"})
+    # component_level_dropout_rate: float = field(default=0.01, metadata={"help": "The component level drop out rate"})
     
     use_skip_anchor_dropout: bool = field(default=False, metadata={"help": "Whether to skip anchor dropout"})
 
+    use_attention_head_level_dropout: bool = field(default=False, metadata={"help": "Whether to use attention head level drop out"})
+    head_attn_level_dropout_rate: float = field(default=0.1, metadata={"help": "The attention head level drop out rate"})
+    train_log_name: str = field(default="train_log", metadata={"help": "The name of the train log file"})
+        
     # parameters for data augmentation experiments
     use_anchor: bool = field(default=False, metadata={"help": "Whether to use anchor dataset"})
     anchor_batch_size_per_device: int = field(default=16, metadata={"help": "The batch size per device for anchor dataset"})
@@ -151,9 +155,13 @@ if __name__ == "__main__":
                 anchor_data_collator=anchor_data_collator,
                 safety_augmentation=args.safety_augmentation,
                 
-                use_component_level_dropout = args.use_component_level_dropout,
-                component_level_dropout_rate = args.component_level_dropout_rate,
-                use_skip_anchor_dropout = args.use_skip_anchor_dropout
+                # use_component_level_dropout = args.use_component_level_dropout,
+                # component_level_dropout_rate = args.component_level_dropout_rate,
+                
+                use_attention_head_level_dropout = args.use_attention_head_level_dropout,
+                head_attn_level_dropout_rate = args.head_attn_level_dropout_rate,
+                use_skip_anchor_dropout = args.use_skip_anchor_dropout,
+                train_log_name = args.train_log_name
             )
             
         else:
@@ -171,9 +179,13 @@ if __name__ == "__main__":
                 use_anchor = False,
                 safety_augmentation=args.safety_augmentation,
                 
-                use_component_level_dropout = args.use_component_level_dropout,
-                component_level_dropout_rate = args.component_level_dropout_rate,
-                use_skip_anchor_dropout = args.use_skip_anchor_dropout
+                # use_component_level_dropout = args.use_component_level_dropout,
+                # component_level_dropout_rate = args.component_level_dropout_rate,
+                
+                use_attention_head_level_dropout = args.use_attention_head_level_dropout,
+                head_attn_level_dropout_rate = args.head_attn_level_dropout_rate,
+                use_skip_anchor_dropout = args.use_skip_anchor_dropout,
+                train_log_name = args.train_log_name
             )
     
     elif args.sft_type == "soft_sft": # token-wise constrained fine-tuning objective
@@ -196,9 +208,12 @@ if __name__ == "__main__":
             first_token_bias_factor = args.first_token_bias_factor,
             use_soft_sft = True,
             
-            use_component_level_dropout = args.use_component_level_dropout,
-            component_level_dropout_rate = args.component_level_dropout_rate,
-            use_skip_anchor_dropout = args.use_skip_anchor_dropout
+            # use_component_level_dropout = args.use_component_level_dropout,
+            # component_level_dropout_rate = args.component_level_dropout_rate,
+            use_attention_head_level_dropout = args.use_attention_head_level_dropout,
+            head_attn_level_dropout_rate = args.head_attn_level_dropout_rate,
+            use_skip_anchor_dropout = args.use_skip_anchor_dropout,
+            train_log_name = args.train_log_name
         )
 
     else:

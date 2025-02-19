@@ -17,7 +17,7 @@ from datasets.arrow_writer import SchemaInferenceError
 from datasets.builder import DatasetGenerationError
 from random import randint
 import random
-from utils.hook_utils import get_attn_o_proj_hooks, get_mlp_down_proj_hooks, add_hooks, SkipHookState
+from utils.hook_utils import add_hooks, SkipHookState, get_attn_head_dropout_hooks
 
 
 
@@ -352,8 +352,12 @@ class ConstrainedSFTTrainer(Trainer):
         anchor_batch_size_per_device: int = 4,
         safety_augmentation: bool = False,
         
-        use_component_level_dropout: bool = False,
-        component_level_dropout_rate: float = 0.2,
+        # use_component_level_dropout: bool = False,
+        # component_level_dropout_rate: float = 0.2,
+        use_attention_head_level_dropout: bool = False,
+        head_attn_level_dropout_rate: float = 0.5,
+        train_log_name: str = "train_log",
+        
         use_skip_anchor_dropout: bool = False,
     ):
         
@@ -364,8 +368,12 @@ class ConstrainedSFTTrainer(Trainer):
         self.safety_augmentation = safety_augmentation
         self.per_device_train_batch_size = args.per_device_train_batch_size
         
-        self.use_component_level_dropout = use_component_level_dropout
-        self.component_level_dropout_rate = component_level_dropout_rate
+        # self.use_component_level_dropout = use_component_level_dropout
+        # self.component_level_dropout_rate = component_level_dropout_rate
+        self.use_attention_head_level_dropout = use_attention_head_level_dropout
+        self.head_attn_level_dropout_rate = head_attn_level_dropout_rate
+        self.train_log_name = train_log_name
+        
         self.use_skip_anchor_dropout = use_skip_anchor_dropout
         self.skip_hook_state = SkipHookState()
         
@@ -1121,6 +1129,10 @@ class ConstrainedSFTTrainer(Trainer):
         for key, metrics in self._stored_metrics[train_eval].items():
             logs[key] = torch.tensor(metrics).mean().item()
         del self._stored_metrics[train_eval]
+        
+        with open(f"train_log/{self.train_log_name}.txt", "a") as f:
+            f.write(str(logs) + "\n")   
+            
         return super().log(logs)
 
     @wraps(Trainer.push_to_hub)
@@ -1364,24 +1376,14 @@ class ConstrainedSFTTrainer(Trainer):
                 
         fwd_pre_hooks, fwd_hooks = [], []
         
-        if self.use_component_level_dropout:
+        if self.use_attention_head_level_dropout:
             layer_num = len(model.model.layers)
             head_num = model.model.layers[0].self_attn.num_heads
-            component_num = layer_num * head_num * 2
-            random_numbers = random.sample(range(component_num), int(component_num * self.component_level_dropout_rate))
-            for component_idx in random_numbers:
-                if component_idx % 2 == 0:
-                    layer_idx = component_idx // (head_num * 2)
-                    head_idx = (component_idx // 2) % head_num
-                    hook_pair = get_attn_o_proj_hooks(model.model, layer_idx=layer_idx, head_idx=head_idx, num_heads=head_num, skip_hook_state=self.skip_hook_state)
-                    fwd_pre_hooks += hook_pair[0]
-                    fwd_hooks += hook_pair[1]
-                else:
-                    layer_idx = component_idx // (head_num * 2)
-                    head_idx = (component_idx // 2) % head_num
-                    hook_pair = get_mlp_down_proj_hooks(model.model, layer_idx=layer_idx, head_idx=head_idx, num_heads=head_num, skip_hook_state=self.skip_hook_state)
-                    fwd_pre_hooks += hook_pair[0]
-                    fwd_hooks += hook_pair[1]
+            for layer_idx in range(layer_num):
+                hook_pair = get_attn_head_dropout_hooks(model_base=model.model, layer_idx=layer_idx, dropout_rate=self.head_attn_level_dropout_rate, num_heads=head_num, skip_hook_state=self.skip_hook_state)
+                fwd_pre_hooks += hook_pair[0]
+                fwd_hooks += hook_pair[1]
+        
         return fwd_pre_hooks, fwd_hooks
 
 

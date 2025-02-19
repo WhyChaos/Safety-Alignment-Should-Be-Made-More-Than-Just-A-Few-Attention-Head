@@ -48,38 +48,42 @@ def add_hooks(
 
 
 
-def get_attn_o_proj_input_hook(head_idx: int, num_heads: int, skip_hook_state: Optional[SkipHookState] = None):
+def get_attn_o_proj_input_hook_random(num_heads: int, dropout_rate: float, skip_hook_state: SkipHookState):
     def hook_fn(module, input):
-        nonlocal head_idx
-        nonlocal num_heads
-        nonlocal skip_hook_state
-
         if isinstance(input, tuple):
-            activation: Float[Tensor, "batch_size seq_len d_model"] = input[0]
+            activation = input[0]
         else:
-            activation: Float[Tensor, "batch_size seq_len d_model"] = input
+            activation = input
 
-        # Calculate the dimension of each head
-        head_dim = activation.size(-1) // num_heads
-        # Mask the output of the specified head
-        start_idx = head_idx * head_dim
-        end_idx = start_idx + head_dim
-        
-        mask = torch.ones_like(activation)
-        mask.requires_grad_(False)
-        if skip_hook_state is None or skip_hook_state.is_skip is False:
-            mask[:, :, start_idx:end_idx] = 0
-        
-        activation = activation * mask
-        
-        # Prevent gradient propagation through the mask part
-        if skip_hook_state is not None:
-            activation.register_hook(lambda grad: grad * mask)
-        
+        batch_size, seq_len, d_model = activation.shape
+        head_dim = d_model // num_heads
+
+        # Create a dropout mask for each head.
+        # During training, each head is kept with probability (1 - dropout_rate);
+        # the kept heads are scaled by 1/(1 - dropout_rate) to maintain expectation.
+        if module.training and skip_hook_state.is_skip is False:
+            head_mask = (torch.rand(num_heads, device=activation.device) >= dropout_rate).to(activation.dtype)
+            head_mask = head_mask / (1 - dropout_rate)
+        else:
+            head_mask = torch.ones(num_heads, device=activation.device, dtype=activation.dtype)
+
+        # Reshape the dropout mask to broadcast to the head dimension.
+        head_mask = head_mask.view(1, 1, num_heads, 1)
+
+        # Reshape activation to separate attention heads.
+        activation = activation.view(batch_size, seq_len, num_heads, head_dim)
+
+        # Apply dropout independently on each head.
+        activation = activation * head_mask
+
+        # Reshape back to original shape.
+        activation = activation.view(batch_size, seq_len, d_model)
+
         if isinstance(input, tuple):
             return (activation, *input[1:])
         else:
             return activation
+
     return hook_fn
 
 def get_mlp_down_proj_input_hook(head_idx: int, num_heads: int, skip_hook_state: Optional[SkipHookState] = None):
@@ -119,14 +123,14 @@ def get_mlp_down_proj_input_hook(head_idx: int, num_heads: int, skip_hook_state:
 
 
 
-def get_attn_o_proj_hooks(
+def get_attn_head_dropout_hooks(
     model_base,
     layer_idx: int,
-    head_idx: int,
+    dropout_rate: float,
     num_heads: int,
     skip_hook_state: Optional[SkipHookState] = None
 ):
-    fwd_pre_hooks = [(model_base.layers[layer_idx].self_attn.o_proj, get_attn_o_proj_input_hook(head_idx=head_idx, num_heads=num_heads, skip_hook_state=skip_hook_state))]
+    fwd_pre_hooks = [(model_base.layers[layer_idx].self_attn.o_proj, get_attn_o_proj_input_hook_random(num_heads=num_heads, dropout_rate=dropout_rate, skip_hook_state=skip_hook_state))]
     fwd_hooks = []
 
     return fwd_pre_hooks, fwd_hooks
