@@ -5,7 +5,7 @@
 **📄 Paper:** [OpenReview](https://openreview.net/forum?id=XI9A0OmjXf) | **🤗 Models:** [ModelScope Collection](https://modelscope.cn/collections/AHD-0073ac3fa9144a)
 
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/release/python-380/)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/release/python-3100/)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.0+-ee4c2c?logo=pytorch&logoColor=white)](https://pytorch.org/)
 
 </div>
@@ -37,6 +37,8 @@ This repository is built upon the excellent work from [shallow-vs-deep-alignment
 Install the required dependencies:
 
 ```bash
+conda create -n AHD python=3.10
+conda activate AHD
 pip install -r requirements.txt
 ```
 
