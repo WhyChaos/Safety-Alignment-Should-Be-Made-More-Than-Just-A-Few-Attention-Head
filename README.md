@@ -96,7 +96,7 @@ Test your models against state-of-the-art jailbreak attacks:
 
 Evaluate model utility using the comprehensive [lm-evaluation-harness](https://github.com/EleutherAI/lm-evaluation-harness) framework.
 
-## 🤗 Pre-trained Models
+## 🤗 AHD Fine-tuned Models
 
 Our fine-tuned models with AHD are publicly available:
 
