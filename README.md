@@ -82,6 +82,9 @@ python finetune.py \
 | `--head_attn_level_dropout_rate=0.5` | Set dropout rate to 0.5 |
 | `--use_skip_anchor_dropout=True` | Enable skip anchor dropout |
 
+> **💡 Core Implementation:** The AHD core code is located in `utils/hook_utils.py` in the `get_attn_o_proj_input_hook_random` function.
+
+
 ### 📝 Evaluation
 
 #### 🛡️ Safety Robustness Testing
