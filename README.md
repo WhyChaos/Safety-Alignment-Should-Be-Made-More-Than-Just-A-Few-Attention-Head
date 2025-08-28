@@ -2,7 +2,7 @@
 
 <div align="center">
 
-**📄 Paper:** [OpenReview](https://openreview.net/forum?id=XI9A0OmjXf) | **🤗 Models:** [ModelScope Collection](https://modelscope.cn/collections/AHD-0073ac3fa9144a)
+**📄 Paper:** [Arxiv](https://arxiv.org/abs/2508.19697) | **🤗 Models:** [ModelScope Collection](https://modelscope.cn/collections/AHD-0073ac3fa9144a)
 
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/release/python-3100/)
@@ -118,14 +118,14 @@ Our fine-tuned models with AHD are publicly available:
 If you find this work useful in your research, please consider citing:
 
 ```bibtex
-@inproceedings{
-      anonymous2025safety,
-      title={Safety Alignment Should Be Made More Than Just A Few Attention Heads},
-      author={Anonymous},
-      booktitle={Submitted to ACL Rolling Review - May 2025},
+@misc{huang2025safetyalignmentjustattention,
+      title={Safety Alignment Should Be Made More Than Just A Few Attention Heads}, 
+      author={Chao Huang and Zefeng Zhang and Juewei Yue and Quangang Li and Chuang Zhang and Tingwen Liu},
       year={2025},
-      url={https://openreview.net/forum?id=XI9A0OmjXf},
-      note={under review}
+      eprint={2508.19697},
+      archivePrefix={arXiv},
+      primaryClass={cs.CR},
+      url={https://arxiv.org/abs/2508.19697}, 
 }
 ```
 
